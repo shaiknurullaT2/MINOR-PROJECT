@@ -1,0 +1,38 @@
+
+Ran command
+…\MINI PROJECT > Start-Process "http://127.0.0.1:8081"
+PS C:\Users\snuru\Desktop\MINI PROJECT> Start-Process "http://127.0.0.1:8081"
+Exit code 0
+Ran background command
+…\MINI PROJECT > echo "@echo off`nSTART cmd /k `"cd backend && python app.py`"`nSTART cmd /k `"cd frontend && python -m http.server 8081 --bind 127.0.0.1`"`nSTART http://127.0.0.1:8081" > run.bat
+Exit code 0
+I have just opened your AI Text Summarization Web App in your default web browser! Your frontend interface should now be visible and connected to the backend.
+
+I also made it easier for you to run in the future:
+I created a special file in your MINI PROJECT folder called run.bat. From now on, whenever you want to start your project (like when you are showing it to your guide or team members), you just have to double-click the run.bat file.
+
+When you double click it, it will automatically:
+
+Start the Python Flask Backend Server
+Start the Frontend Server
+Open your web browser right to the app
+Let me know if the browser opened correctly for you and if the summarizer is working well on your end!
+
+Ran command
+…\MINI PROJECT > Start-Process "http://127.0.0.1:8081"
+PS C:\Users\snuru\Desktop\MINI PROJECT> Start-Process "http://127.0.0.1:8081"
+Exit code 0
+Ran background command
+…\MINI PROJECT > echo "@echo off`nSTART cmd /k `"cd backend && python app.py`"`nSTART cmd /k `"cd frontend && python -m http.server 8081 --bind 127.0.0.1`"`nSTART http://127.0.0.1:8081" > run.bat
+Exit code 0
+I have just opened your AI Text Summarization Web App in your default web browser! Your frontend interface should now be visible and connected to the backend.
+
+I also made it easier for you to run in the future:
+I created a special file in your MINI PROJECT folder called run.bat. From now on, whenever you want to start your project (like when you are showing it to your guide or team members), you just have to double-click the run.bat file.
+
+When you double click it, it will automatically:
+
+Start the Python Flask Backend Server
+Start the Frontend Server
+Open your web browser right to the app
+Let me know if the browser opened correctly for you and if the summarizer is working well on your end!
