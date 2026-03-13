@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: summarize-ai
+    runtime: python
+    buildCommand: ./render-build.sh
+    startCommand: cd backend && gunicorn -k uvicorn.workers.UvicornWorker main:app
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: PYTHON_VERSION
+        value: 3.11.0 # Downgraded from 3.14 to ensure spacy compatibility
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
