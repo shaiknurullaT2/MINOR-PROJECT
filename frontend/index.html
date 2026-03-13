@@ -1,98 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Text Summarization Tool</title>
-    <!-- Modern Typography from Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-</head>
-<body>
-    <!-- Background Animated Shapes -->
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
-
-    <main class="container">
-        <header class="header">
-            <div class="logo-wrapper">
-                <i data-lucide="bot" class="logo-icon"></i>
-                <h1><span class="gradient-text">AI Text</span> Summarizer</h1>
-            </div>
-            <p class="subtitle">Generate concise summaries from large documents instantly using advanced Natural Language Processing.</p>
-        </header>
-
-        <section class="app-interface">
-            <!-- Input Area -->
-            <div class="card input-card glass-panel">
-                <div class="card-header">
-                    <i data-lucide="file-text"></i>
-                    <h2>Input Text</h2>
-                </div>
-                <div class="card-body">
-                    <textarea 
-                        id="source-text" 
-                        placeholder="Paste your long article, paragraph, or document here to be summarized... (minimum 50 characters)"
-                    ></textarea>
-                </div>
-                <div class="card-footer">
-                    <span class="char-count" id="char-count">0 characters</span>
-                    <button class="primary-btn" id="summarize-btn">
-                        <span>Summarize Now</span>
-                        <i data-lucide="sparkles"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Loading State -->
-            <div class="loading-state hidden" id="loading">
-                <div class="spinner"></div>
-                <p>AI is analyzing and summarizing your text...</p>
-            </div>
-
-            <!-- Result Area -->
-            <div class="card output-card glass-panel hidden" id="result-card">
-                <div class="card-header">
-                    <i data-lucide="check-circle"></i>
-                    <h2>Summary Result</h2>
-                </div>
-                <div class="card-body">
-                    <div id="summary-content" class="summary-text"></div>
-                </div>
-                <div class="card-footer flex-space-between">
-                    <div class="stats" id="summary-stats">
-                        <span class="badge original-badge">Orig: 0 chars</span>
-                        <i data-lucide="arrow-right" class="arrow-icon"></i>
-                        <span class="badge sum-badge">Sum: 0 chars</span>
-                    </div>
-                    <button class="secondary-btn" id="copy-btn">
-                        <i data-lucide="copy"></i> Copy
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Error State -->
-            <div class="error-state hidden" id="error">
-                <i data-lucide="alert-circle" class="error-icon"></i>
-                <p id="error-message">An error occurred.</p>
-            </div>
-        </section>
-
-        <footer>
-            <div class="footer-content glass-panel">
-                <p>Project by: <strong>Shaik Nurulla, Mallari Siva Sai, Shaik Muhammed Thoufiq, Yeddula Raj kumar</strong></p>
-                <p class="sub-text">Santhiram Engineering College | Dept. of CSE (AI & ML) | Guided by Dr. SMD Farooq</p>
-            </div>
-        </footer>
-    </main>
-
-    <script src="script.js"></script>
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-    </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

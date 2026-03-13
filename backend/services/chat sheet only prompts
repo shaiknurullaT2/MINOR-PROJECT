@@ -1,0 +1,32 @@
+Modify my text summarization project with the following features:
+
+1. **Input Options**:
+   - Allow users to either type text directly or upload a PDF file at the summarization entry stage.
+   - Automatically extract text content from uploaded PDFs for summarization.
+
+2. **Export Options**:
+   - Provide the ability to export the summarized content back into a PDF format.
+   - Ensure the exported PDF is cleanly formatted and downloadable.
+
+3. **User Authentication**:
+   - Implement a one-time login system for users.
+   - Store user session securely and allow access to personalized features after login.
+
+4. **Dashboard Feature**:
+   - Create a dashboard to display user content and summarization history.
+   - Support multiple visualization formats (list view, card view, timeline, etc.).
+   - Allow users to revisit, manage, and re-download past summaries.
+
+5. **Multilingual Visualization**:
+   - Add functionality to translate and visualize the summarized text in multiple languages.
+   - Provide a language selection option for users to view summaries in their preferred language.
+
+6. **UI/UX Enhancements**:
+   - Ensure smooth navigation between login, dashboard, summarization input, and export stages.
+   - Make the interface intuitive and user-friendly.
+
+Deliverables:
+- Updated project code with these features integrated.
+- Ensure compatibility with existing summarization logic.
+- Maintain scalability for future feature additions.
+--------##1st prompt
