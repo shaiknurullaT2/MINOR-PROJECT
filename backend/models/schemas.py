@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 # Basic Text Summarization Request & Response
 class SummarizeRequest(BaseModel):
@@ -13,6 +13,12 @@ class SummarizeResponse(BaseModel):
     summary_length: int
     compression_ratio: float
     key_sentences: Optional[List[str]] = []
+    topics: Optional[List[str]] = []
+    keywords: Optional[List[str]] = []
+    flashcards: Optional[List[Dict[str, str]]] = []
+    quizzes: Optional[List[Dict[str, Any]]] = []
+    mindmap: Optional[Dict[str, Any]] = {}
+    insights: Optional[Dict[str, Any]] = {}
 
 # URL Scraping Request
 class UrlSummarizeRequest(BaseModel):

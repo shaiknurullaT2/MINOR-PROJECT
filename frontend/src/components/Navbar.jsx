@@ -1,13 +1,12 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FileText, LogOut, LayoutDashboard, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const isAuthenticated = !!localStorage.getItem('token');
+  const { isAuthenticated, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    logout();
   };
 
   return (
@@ -25,12 +24,12 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
-              <Link 
-                to="/summarize" 
+              <a 
+                href="/summarize" 
                 className="text-slate-600 hover:text-indigo-600 font-medium text-sm transition-colors hidden sm:block"
               >
                 New Summary
-              </Link>
+              </a>
               <Link 
                 to="/dashboard" 
                 className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-medium text-sm transition-colors"

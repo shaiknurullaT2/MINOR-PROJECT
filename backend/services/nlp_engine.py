@@ -14,8 +14,8 @@ class NLPEngine:
         """Lazy-load heavy ML models — server starts even if they aren't installed."""
         try:
             from transformers import pipeline
-            print("Loading HuggingFace Summarization Model...")
-            self.summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6", framework="pt")
+            print("Loading HuggingFace Instruction Model (FLAN-T5)...")
+            self.summarizer = pipeline("text2text-generation", model="google/flan-t5-base", framework="pt")
             print("HuggingFace model loaded.")
         except Exception as e:
             print(f"[WARN] HuggingFace model not loaded: {e}. Will use extractive fallback.")
@@ -26,8 +26,8 @@ class NLPEngine:
             try:
                 self.nlp = spacy.load("en_core_web_sm")
             except OSError:
-                import subprocess
-                subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
+                import subprocess, sys
+                subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], check=True)
                 self.nlp = spacy.load("en_core_web_sm")
             self.spacy_loaded = True
             print("spaCy model loaded.")
@@ -43,23 +43,62 @@ class NLPEngine:
         if self.summarizer is None:
             return self.summarize_extractive(text, length)
 
-        if length == "short":
-            max_len = max(30, int(input_length * 0.2))
-            min_len = max(10, int(input_length * 0.1))
-        elif length == "long":
-            max_len = max(50, int(input_length * 0.5))
-            min_len = max(20, int(input_length * 0.3))
-        else:
-            max_len = max(40, int(input_length * 0.35))
-            min_len = max(15, int(input_length * 0.2))
+        # Step 1: Core Meaning Extraction (Chunking)
+        words = text.split()
+        chunk_size = 350
+        chunks = [" ".join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
+        
+        core_meanings = []
+        for chunk in chunks:
+            prompt_step1 = f"""Read the following text and explain its core meaning in simple words.
+Do NOT copy input text.
+Do NOT just compress text.
+Always rewrite in simple words.
+Focus on full meaning.
 
-        truncated_text = " ".join(text.split()[:800])
+Text:
+{chunk}
+"""
+            try:
+                res = self.summarizer(prompt_step1, max_length=512, do_sample=False)
+                core_meanings.append(res[0]['generated_text'].strip())
+            except Exception as e:
+                print(f"Summarization chunk error: {e}")
+                # Fallback to extractive for this chunk
+                core_meanings.append(self.summarize_extractive(chunk, "short"))
+
+        combined_meaning = " ".join(core_meanings)
+
+        # Extract intent from the original text (usually at the start or end)
+        intent_hint = " ".join(words[:100]) + (" ... " + " ".join(words[-100:]) if len(words) > 100 else "")
+
+        # Step 2: Intent-Based Final Output
+        prompt_step2 = f"""You are an intelligent Answer Extractor.
+Generate output based on the user's intent.
+
+Rules:
+- Check the Format Hints. If a specific format is requested -> follow that format strictly.
+- If no format is mentioned -> give:
+
+(short clear explanation)
+
+Keywords:
+(point-wise important terms)
+
+- Do NOT copy input text
+- Write in simple words
+
+Format Hints:
+{intent_hint}
+
+Extracted Core Meaning:
+{combined_meaning}"""
 
         try:
-            result = self.summarizer(truncated_text, max_length=max_len, min_length=min_len, do_sample=False)
-            return result[0]['summary_text'].strip()
+            result = self.summarizer(prompt_step2, max_length=1024, do_sample=False)
+            return result[0]['generated_text'].strip()
         except Exception as e:
-            print(f"Summarization error: {e}")
+            print(f"Summarization final error: {e}")
             return self.summarize_extractive(text, length)
 
     def _basic_extractive(self, text: str, length: str = "medium") -> str:
@@ -80,7 +119,12 @@ class NLPEngine:
         # Score by position — earlier sentences tend to be more informative
         scored = [(i, sent) for i, sent in enumerate(sentences)]
         scored.sort(key=lambda x: x[0])  # keep original order
-        return " ".join([s for _, s in scored[:n]])
+        extracted_text = " ".join([s for _, s in scored[:n]])
+        
+        tk = self.extract_topics_and_keywords(text)
+        keywords_str = "\n".join(f"- {k}" for k in tk.get("keywords", [])[:5])
+        
+        return f"{extracted_text}\n\nKeywords:\n{keywords_str}"
 
     def summarize_extractive(self, text: str, length: str = "medium") -> str:
         """spaCy-based if loaded, otherwise basic regex fallback."""
@@ -117,7 +161,12 @@ class NLPEngine:
         from heapq import nlargest
         summarized_sentences = nlargest(num_sents, sentence_scores, key=sentence_scores.get)
         final_sentences = [w.text for w in doc.sents if w in summarized_sentences]
-        return " ".join(final_sentences)
+        extracted_text = " ".join(final_sentences)
+
+        tk = self.extract_topics_and_keywords(text)
+        keywords_str = "\n".join(f"- {k}" for k in tk.get("keywords", [])[:5])
+        
+        return f"{extracted_text}\n\nKeywords:\n{keywords_str}"
 
     def extract_key_points(self, text: str, num_points: int = 5) -> List[str]:
         """Extract key bullet points. Uses spaCy if available, else basic."""
@@ -159,6 +208,148 @@ class NLPEngine:
             "original_length": len(text)
         }
 
+
+    def get_document_insights(self, original_text: str, summary_text: str) -> Dict[str, Any]:
+        """Calculates advanced document insights like reading time and compression."""
+        orig_words = len(original_text.split())
+        summ_words = len(summary_text.split())
+        
+        # Difficulty basic heuristic
+        avg_word_len = sum(len(w) for w in original_text.split()) / max(1, orig_words)
+        if avg_word_len > 6.5: difficulty = "Advanced"
+        elif avg_word_len > 5.0: difficulty = "Medium"
+        else: difficulty = "Easy"
+
+        return {
+            "word_count": orig_words,
+            "sentence_count": len([s for s in original_text.split('.') if len(s.strip()) > 2]),
+            "reading_time_mins": max(1, math.ceil(orig_words / 200)),
+            "summary_compression_ratio": round((1 - (summ_words / max(1, orig_words))) * 100) if orig_words > 0 else 0,
+            "difficulty_level": difficulty
+        }
+
+    def extract_topics_and_keywords(self, text: str) -> Dict[str, List[str]]:
+        """Extracts main topics and keywords using spaCy."""
+        if not self.spacy_loaded:
+            return {"topics": ["General Topic"], "keywords": ["Key1", "Key2"]}
+            
+        doc = self.nlp(text)
+        
+        chunks = {}
+        for chunk in doc.noun_chunks:
+            if len(chunk.text.split()) <= 3 and chunk.root.pos_ in ["NOUN", "PROPN"]:
+                txt = chunk.text.lower().strip()
+                if txt not in self.nlp.Defaults.stop_words:
+                    chunks[txt] = chunks.get(txt, 0) + 1
+                    
+        sorted_chunks = sorted(chunks.items(), key=lambda x: x[1], reverse=True)
+        topics = [t[0].title() for t in sorted_chunks[:5]]
+        
+        keywords_dict = {}
+        for ent in doc.ents:
+            txt = ent.text.strip()
+            if len(txt) > 2 and "\n" not in txt:
+                keywords_dict[txt] = keywords_dict.get(txt, 0) + 1
+        
+        sorted_keys = sorted(keywords_dict.items(), key=lambda x: x[1], reverse=True)
+        keywords = [k[0] for k in sorted_keys[:10]]
+        
+        if not keywords:
+            keywords = [t[0].title() for t in sorted_chunks[5:15]]
+
+        return {"topics": topics, "keywords": keywords}
+
+    def extract_important_sentences(self, text: str, max_sentences=5) -> List[str]:
+        """Returns the most important sentences unchanged."""
+        if not self.spacy_loaded: return []
+        import re
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?]) +', text) if len(s.split()) > 5]
+        return sentences[:max_sentences]
+
+    def generate_flashcards(self, text: str) -> List[Dict[str, str]]:
+        """Generates flashcards by finding definition contexts."""
+        if not self.spacy_loaded:
+            return []
+            
+        doc = self.nlp(text)
+        flashcards = []
+        for sent in doc.sents:
+            if len(flashcards) >= 5: break
+            txt = sent.text.strip()
+            if " is " in txt or " refers to " in txt or " means " in txt:
+                parts = txt.split(" is ", 1)
+                if len(parts) != 2: parts = txt.split(" refers to ", 1)
+                if len(parts) != 2: parts = txt.split(" means ", 1)
+                
+                if len(parts) == 2 and len(parts[0].split()) < 5:
+                    front = f"What is {parts[0].strip()}?"
+                    back = parts[1].strip().capitalize()
+                    flashcards.append({"front": front, "back": back})
+                    
+        return flashcards
+
+    def generate_quiz(self, text: str) -> List[Dict[str, Any]]:
+        """Generates multiple-choice quizzes using entities."""
+        if not self.spacy_loaded:
+            return []
+            
+        import random
+        doc = self.nlp(text)
+        quizzes = []
+        
+        all_ents = list(set([e.text for e in doc.ents if len(e.text) > 3]))
+        
+        for sent in doc.sents:
+            if len(quizzes) >= 5: break
+            ents = [e for e in sent.ents]
+            if ents and 10 < len(sent.text.split()) < 30:
+                target_ent = ents[0].text
+                question = sent.text.replace(target_ent, "________")
+                
+                options = [target_ent]
+                wrongs = [e for e in all_ents if e != target_ent]
+                random.shuffle(wrongs)
+                options.extend(wrongs[:3])
+                
+                defaults = ["Algorithm", "System", "Process", "Data", "Analysis"]
+                while len(options) < 4:
+                    opt = random.choice(defaults)
+                    if opt not in options: options.append(opt)
+                    
+                random.shuffle(options)
+                letters = ["A", "B", "C", "D"]
+                opts_dict = {letters[i]: options[i] for i in range(4)}
+                
+                correct_letter = next(k for k, v in opts_dict.items() if v == target_ent)
+                
+                quizzes.append({
+                    "question": question.strip(),
+                    "options": opts_dict,
+                    "correct_answer": correct_letter,
+                    "correct_text": target_ent
+                })
+                
+        return quizzes
+
+    def generate_mindmap(self, topics: List[str], keywords: List[str]) -> Dict[str, Any]:
+        """Creates a hierarchical JSON tree for mind map visualization."""
+        main_topic = topics[0] if topics else "Main Topic"
+        
+        branches = []
+        if len(topics) > 1:
+            for i, t in enumerate(topics[1:4]):
+                start_idx = i * 2
+                branches.append({
+                    "name": t,
+                    "children": [{"name": k} for k in keywords[start_idx:start_idx+2]]
+                })
+        else:
+            branches = [{"name": "Subtopics", "children": [{"name": k} for k in keywords[:4]]}]
+            
+        return {
+            "name": main_topic,
+            "children": branches
+        }
 
 # Singleton instance
 nlp_engine = None

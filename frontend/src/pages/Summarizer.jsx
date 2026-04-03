@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { Upload, Type, Link as LinkIcon, Download, Languages, Sparkles, Send, Share, FileText, CheckCircle2 } from 'lucide-react';
 
 export default function Summarizer() {
@@ -15,7 +15,7 @@ export default function Summarizer() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [translatedText, setTranslatedText] = useState(null);
-  const [targetLang, setTargetLang] = useState('es');
+  const [targetLang, setTargetLang] = useState('en');
   
   const [isSaved, setIsSaved] = useState(false);
 
@@ -61,7 +61,7 @@ export default function Summarizer() {
         headers = { 'Content-Type': 'multipart/form-data' };
       }
 
-      const res = await axios.post(endpoint, payload, { headers });
+      const res = await api.post(endpoint, payload, { headers });
       setResult({...res.data, originalInput: inputType === 'text' ? textInput : "Content from file/url"});
       
     } catch (err) {
@@ -75,7 +75,7 @@ export default function Summarizer() {
   const translateSummary = async () => {
     if(!result) return;
     try {
-      const res = await axios.post('/api/translate', {
+      const res = await api.post('/api/translate', {
         text: result.summary,
         target_language: targetLang
       });
@@ -89,7 +89,7 @@ export default function Summarizer() {
   const exportPDF = async () => {
     if(!result) return;
     try {
-      const res = await axios.post('/api/export-pdf', {
+      const res = await api.post('/api/export-pdf', {
         original_text: result.originalInput || "Referenced Document",
         summary_text: translatedText || result.summary,
         created_at: new Date().toISOString()
@@ -112,15 +112,12 @@ export default function Summarizer() {
   const saveToDashboard = async () => {
     if(!result) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/dashboard/save', {
+      await api.post('/api/dashboard/save', {
         original_text: result.originalInput || "Referenced Document",
         summary_text: translatedText || result.summary,
         method: method,
         length_setting: length,
         compression_ratio: result.compression_ratio
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setIsSaved(true);
     } catch (error) {
@@ -287,6 +284,7 @@ export default function Summarizer() {
                  <div className="flex-1 bg-slate-50 border border-slate-200 p-2 rounded-lg flex items-center text-sm">
                    <Languages size={16} className="text-slate-400 mx-2" />
                    <select className="flex-1 bg-transparent text-slate-700 outline-none font-medium" value={targetLang} onChange={e => setTargetLang(e.target.value)}>
+                     <option value="en">English</option>
                      <option value="es">Spanish</option>
                      <option value="fr">French</option>
                      <option value="de">German</option>

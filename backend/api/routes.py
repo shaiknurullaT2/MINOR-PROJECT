@@ -8,6 +8,25 @@ from services.document_parser import DocumentParser
 
 router = APIRouter()
 
+def enhance_summary_response(engine: NLPEngine, original_text: str, summary_text: str) -> SummarizeResponse:
+    tk = engine.extract_topics_and_keywords(original_text)
+    topics = tk.get("topics", [])
+    keywords = tk.get("keywords", [])
+    
+    return SummarizeResponse(
+        summary=summary_text,
+        original_length=len(original_text),
+        summary_length=len(summary_text),
+        compression_ratio=round(len(summary_text.split()) / max(1, len(original_text.split())), 2),
+        key_sentences=engine.extract_important_sentences(original_text, 5),
+        topics=topics,
+        keywords=keywords,
+        flashcards=engine.generate_flashcards(original_text),
+        quizzes=engine.generate_quiz(original_text),
+        mindmap=engine.generate_mindmap(topics, keywords),
+        insights=engine.get_document_insights(original_text, summary_text)
+    )
+
 @router.post("/summarize", response_model=SummarizeResponse)
 async def summarize_text(request: SummarizeRequest):
     try:
@@ -18,15 +37,7 @@ async def summarize_text(request: SummarizeRequest):
         else:
             summary = engine.summarize_extractive(request.text, request.length)
             
-        key_points = engine.extract_key_points(request.text, 3)
-            
-        return SummarizeResponse(
-            summary=summary,
-            original_length=len(request.text),
-            summary_length=len(summary),
-            compression_ratio=round(len(summary) / len(request.text), 2),
-            key_sentences=key_points
-        )
+        return enhance_summary_response(engine, request.text, summary)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -40,13 +51,7 @@ async def summarize_url(request: UrlSummarizeRequest):
         engine = get_nlp_engine()
         summary = engine.summarize_abstractive(text, request.length)
         
-        return SummarizeResponse(
-            summary=summary,
-            original_length=len(text),
-            summary_length=len(summary),
-            compression_ratio=round(len(summary) / (len(text)+0.01), 2),
-            key_sentences=[]
-        )
+        return enhance_summary_response(engine, text, summary)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -78,13 +83,7 @@ async def summarize_document(
         else:
             summary = engine.summarize_extractive(text, length)
             
-        return SummarizeResponse(
-            summary=summary,
-            original_length=len(text),
-            summary_length=len(summary),
-            compression_ratio=round(len(summary) / (len(text)+0.01), 2),
-            key_sentences=engine.extract_key_points(text, 3)
-        )
+        return enhance_summary_response(engine, text, summary)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
